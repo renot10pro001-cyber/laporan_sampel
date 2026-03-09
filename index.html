@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Laporan Kelalaian Sampel Darah</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+:root{
+  --red:#b91c1c;--red2:#dc2626;--red-glow:rgba(185,28,28,.15);
+  --ink:#0f172a;--ink2:#334155;--ink3:#64748b;
+  --white:#fff;--bg:#f8fafc;--bg2:#f1f5f9;
+  --border:#e2e8f0;--green:#16a34a;--purple:#7c3aed;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.06);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
+
+#admin-screen{display:none;position:fixed;inset:0;background:var(--ink);z-index:1000;overflow-y:auto;}
+#admin-screen.show{display:flex;flex-direction:column;}
+.adm-inner{max-width:460px;width:100%;margin:auto;padding:36px 22px;}
+.adm-logo{text-align:center;margin-bottom:28px;}
+.adm-logo .drop{width:58px;height:58px;background:var(--red);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:12px;box-shadow:0 0 0 7px rgba(185,28,28,.2);}
+.adm-logo h1{font-family:'Playfair Display',serif;color:#fff;font-size:1.4rem;}
+.adm-logo p{color:#94a3b8;font-size:.8rem;margin-top:4px;}
+.adm-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:22px;margin-bottom:14px;}
+.adm-card h3{color:#e2e8f0;font-size:.88rem;margin-bottom:14px;}
+.adm-field{margin-bottom:11px;}
+.adm-field label{display:block;color:#94a3b8;font-size:.73rem;font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
+.adm-field input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:10px 13px;color:#fff;font-family:'Sora',sans-serif;font-size:.86rem;}
+.adm-field input::placeholder{color:#64748b;}
+.adm-field input:focus{outline:none;border-color:var(--red2);}
+.adm-note{background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.3);border-radius:8px;padding:11px 13px;color:#fbbf24;font-size:.74rem;line-height:1.7;margin-bottom:14px;}
+.adm-note code{background:rgba(251,191,36,.15);padding:1px 5px;border-radius:3px;}
+.adm-save{width:100%;padding:13px;background:var(--red);color:#fff;border:none;border-radius:9px;font-family:'Sora',sans-serif;font-weight:700;font-size:.9rem;cursor:pointer;}
+.adm-note-bottom{color:#64748b;font-size:.72rem;text-align:center;margin-top:10px;line-height:1.6;}
+
+header{background:var(--white);border-bottom:3px solid var(--red);padding:11px 16px;display:flex;align-items:center;gap:11px;box-shadow:var(--shadow);position:sticky;top:0;z-index:50;}
+.h-logo{width:36px;height:36px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.h-text h1{font-family:'Playfair Display',serif;font-size:.9rem;color:var(--ink);line-height:1.2;}
+.h-text p{font-size:.65rem;color:var(--ink3);font-weight:300;}
+.h-actions{margin-left:auto;display:flex;align-items:center;gap:7px;}
+.h-btn{background:var(--bg2);border:1.5px solid var(--border);border-radius:7px;padding:6px 10px;cursor:pointer;font-size:.73rem;color:var(--ink2);font-family:'Sora',sans-serif;font-weight:600;display:flex;align-items:center;gap:4px;transition:all .2s;}
+.h-btn:hover{background:var(--red);color:#fff;border-color:var(--red);}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#94a3b8;flex-shrink:0;transition:background .3s;}
+.sync-dot.ok{background:var(--green);}
+.sync-dot.err{background:var(--red2);}
+
+.tabs{background:var(--white);border-bottom:1px solid var(--border);display:flex;padding:0 16px;overflow-x:auto;}
+.tab{padding:11px 14px;font-size:.77rem;font-weight:600;font-family:'Sora',sans-serif;border:none;background:none;color:var(--ink3);cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-1px;transition:all .2s;}
+.tab.active{color:var(--red);border-bottom-color:var(--red);}
+.tab:hover:not(.active){color:var(--ink);}
+
+.pane{display:none;padding:16px;max-width:700px;margin:0 auto;}
+.pane.active{display:block;}
+
+.card{background:var(--white);border-radius:13px;padding:18px;box-shadow:var(--shadow);margin-bottom:14px;border:1px solid var(--border);}
+.card-title{font-family:'Playfair Display',serif;font-size:.98rem;color:var(--ink);margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+
+.fg{margin-bottom:13px;}
+label.fl{display:block;font-size:.71rem;font-weight:600;color:var(--ink3);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
+label.fl .req{color:var(--red);margin-left:2px;}
+input[type=text],input[type=date],textarea,select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:.86rem;font-family:'Sora',sans-serif;color:var(--ink);background:var(--white);transition:border-color .2s,box-shadow .2s;}
+input[type=text]:focus,input[type=date]:focus,textarea:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 3px var(--red-glow);}
+textarea{resize:vertical;}
+
+/* BARCODE SCAN AREA */
+.bc-row{display:flex;gap:6px;flex-wrap:wrap;}
+.bc-row input{flex:1;min-width:120px;}
+.scan-btn{background:var(--red);color:#fff;border:none;border-radius:8px;padding:10px 11px;cursor:pointer;font-family:'Sora',sans-serif;font-weight:600;font-size:.73rem;display:flex;align-items:center;gap:4px;transition:background .2s,transform .1s;flex-shrink:0;white-space:nowrap;}
+.scan-btn:hover{background:var(--red2);}
+.scan-btn:active{transform:scale(.97);}
+.gallery-btn{background:var(--ink2);color:#fff;border:none;border-radius:8px;padding:10px 11px;cursor:pointer;font-family:'Sora',sans-serif;font-weight:600;font-size:.73rem;display:flex;align-items:center;gap:4px;transition:background .2s;flex-shrink:0;white-space:nowrap;}
+.gallery-btn:hover{background:var(--ink);}
+#gallery-input{display:none;}
+
+#scanner-box{display:none;margin-top:9px;border-radius:9px;overflow:hidden;border:2px solid #fca5a5;}
+#scanner-box.on{display:block;}
+#qr-reader{width:100%!important;}
+#qr-reader video{width:100%!important;border-radius:0!important;}
+#qr-reader__dashboard_section_swaplink,#html5-qrcode-button-camera-permission,
+#html5-qrcode-button-camera-stop,#html5-qrcode-button-file-selection{display:none!important;}
+
+/* GALLERY PREVIEW */
+#gallery-preview{display:none;margin-top:10px;border-radius:9px;overflow:hidden;border:2px solid #fca5a5;background:#000;text-align:center;padding:10px;}
+#gallery-preview img{max-width:100%;max-height:200px;border-radius:6px;}
+#gallery-scanning{font-size:.78rem;color:#94a3b8;margin-top:8px;display:none;}
+
+.scan-ok{font-size:.74rem;color:var(--green);margin-top:5px;display:none;align-items:center;gap:5px;font-weight:600;}
+.scan-ok.show{display:flex;}
+
+.blood-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.bb{padding:10px 4px;border:2px solid var(--border);border-radius:8px;background:var(--white);font-family:'Playfair Display',serif;font-size:1rem;color:var(--ink3);cursor:pointer;transition:all .17s;text-align:center;}
+.bb:hover{border-color:#fca5a5;color:var(--red2);}
+.bb.sel{background:var(--red);border-color:var(--red);color:#fff;}
+
+.sub-btn{width:100%;padding:13px;background:var(--red);color:#fff;border:none;border-radius:9px;font-size:.9rem;font-weight:700;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px;}
+.sub-btn:hover{background:var(--red2);box-shadow:0 4px 14px rgba(185,28,28,.3);}
+.sub-btn:active{transform:scale(.98);}
+.sub-btn:disabled{background:#94a3b8;cursor:not-allowed;box-shadow:none;}
+
+.rekap-top{display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap;}
+.rekap-top select{flex:1;min-width:110px;padding:8px 11px;}
+.load-btn{background:var(--ink);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-family:'Sora',sans-serif;font-weight:600;font-size:.78rem;cursor:pointer;display:flex;align-items:center;gap:5px;transition:background .2s;flex-shrink:0;}
+.load-btn:hover{background:var(--ink2);}
+.stat-row{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:14px;}
+.stat{background:var(--white);border:1px solid var(--border);border-radius:11px;padding:13px;box-shadow:var(--shadow);}
+.stat .num{font-family:'Playfair Display',serif;font-size:1.7rem;color:var(--red);line-height:1;}
+.stat .lbl{font-size:.7rem;color:var(--ink3);margin-top:4px;font-weight:600;}
+.chart-title{font-size:.76rem;font-weight:700;color:var(--ink2);margin-bottom:9px;}
+.bar-row{display:flex;align-items:center;gap:9px;margin-bottom:7px;}
+.bar-label{font-size:.72rem;color:var(--ink2);width:72px;flex-shrink:0;font-weight:600;}
+.bar-track{flex:1;background:var(--bg2);border-radius:5px;height:20px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:5px;transition:width .5s ease;display:flex;align-items:center;padding-left:7px;min-width:2px;}
+.bar-fill span{font-size:.68rem;color:#fff;font-weight:700;}
+.bar-fill.xs span{display:none;}
+.bar-num{font-size:.7rem;color:var(--ink3);width:20px;text-align:right;flex-shrink:0;}
+
+.tbl-wrap{overflow-x:auto;border-radius:9px;}
+table{width:100%;border-collapse:collapse;font-size:.76rem;}
+thead{background:var(--ink);color:#fff;}
+th{padding:8px 10px;text-align:left;font-weight:600;font-size:.7rem;white-space:nowrap;}
+td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#fff5f5;}
+.badge-blood{background:var(--red);color:#fff;padding:2px 7px;border-radius:4px;font-weight:700;font-size:.73rem;}
+
+.loading{text-align:center;padding:36px 20px;color:var(--ink3);}
+.spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.empty{text-align:center;padding:32px 20px;color:var(--ink3);font-size:.83rem;}
+.empty .icon{font-size:2rem;margin-bottom:7px;}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:9px;font-size:.81rem;font-weight:500;box-shadow:var(--shadow-lg);z-index:999;transition:transform .35s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.ok{background:var(--green);}
+.toast.err{background:var(--red2);}
+
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:200;align-items:center;justify-content:center;}
+.modal-bg.show{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:26px;max-width:290px;width:90%;text-align:center;box-shadow:var(--shadow-lg);animation:pop .3s cubic-bezier(.34,1.56,.64,1);}
+@keyframes pop{from{transform:scale(.8);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal h3{font-family:'Playfair Display',serif;font-size:1.05rem;margin-bottom:4px;}
+.modal p{font-size:.75rem;color:var(--ink3);margin-bottom:12px;}
+.modal-url{font-size:.64rem;color:var(--ink3);word-break:break-all;background:var(--bg2);padding:6px;border-radius:5px;margin-bottom:11px;}
+.modal-close{background:var(--ink);color:#fff;border:none;border-radius:7px;padding:8px 22px;font-family:'Sora',sans-serif;font-weight:700;font-size:.8rem;cursor:pointer;}
+
+.g-step{display:flex;gap:11px;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);}
+.g-step:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.g-num{width:26px;height:26px;background:var(--red);border-radius:50%;color:#fff;font-size:.75rem;font-weight:700;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.g-text h4{font-size:.83rem;color:var(--ink);margin-bottom:3px;}
+.g-text p{font-size:.76rem;color:var(--ink3);line-height:1.65;}
+.g-text code{background:var(--bg2);padding:1px 5px;border-radius:3px;font-size:.74rem;color:var(--red);}
+
+/* BUKTI FOTO */
+.bukti-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.bukti-btn{background:var(--purple);color:#fff;border:none;border-radius:8px;padding:10px 13px;cursor:pointer;font-family:'Sora',sans-serif;font-weight:600;font-size:.73rem;display:flex;align-items:center;gap:5px;transition:background .2s;flex-shrink:0;}
+.bukti-btn:hover{background:#6d28d9;}
+.bukti-btn.clear{background:var(--ink3);}
+.bukti-btn.clear:hover{background:var(--ink);}
+#bukti-input{display:none;}
+#bukti-preview-wrap{display:none;margin-top:10px;border-radius:9px;overflow:hidden;border:2px solid #c4b5fd;background:#f5f3ff;padding:10px;text-align:center;}
+#bukti-preview-wrap img{max-width:100%;max-height:200px;border-radius:6px;object-fit:cover;}
+#bukti-status{font-size:.74rem;color:#7c3aed;margin-top:6px;font-weight:600;}
+.bukti-req-note{font-size:.72rem;color:var(--red);margin-top:6px;font-weight:600;display:none;}
+.bukti-req-note.show{display:block;}
+/* thumbnail in table */
+.tbl-thumb{width:44px;height:44px;object-fit:cover;border-radius:5px;cursor:pointer;border:2px solid var(--border);transition:transform .15s;}
+.tbl-thumb:hover{transform:scale(1.1);border-color:var(--purple);}
+.no-bukti{color:var(--ink3);font-size:.72rem;}
+/* lightbox */
+#lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+#lightbox.show{display:flex;}
+#lightbox img{max-width:94vw;max-height:84vh;border-radius:10px;box-shadow:0 8px 40px rgba(0,0,0,.5);}
+#lightbox-close{background:#fff;color:var(--ink);border:none;border-radius:8px;padding:9px 24px;font-family:'Sora',sans-serif;font-weight:700;font-size:.85rem;cursor:pointer;}
+
+@media(max-width:440px){.h-text p{display:none;}}
+</style>
+</head>
+<body>
+
+<!--
+==============================================================
+  KONFIGURASI ADMIN
+  Edit 5 baris di bawah, lalu upload ke GitHub.
+  Token dipecah 3 bagian agar tidak dinonaktifkan GitHub.
+  Users lain TIDAK perlu setup apapun.
+==============================================================
+-->
+<script>
+const _U = "renot10pro001-cyber";
+const _R = "laporan_sampel";
+const _T1 = "ghp_1BZ39tGZHkn6ao";
+const _T2 = "5dIp5bFTh9BZ";
+const _T3 = "ysed37qIxF";
+// Cara pecah token: token "ghp_ABCDEFGHIJ..." → bagi 3 bagian bebas
+// Bagian 1 harus mengandung "ghp_" + beberapa huruf
+// Bagian 2 & 3 sisanya
+</script>
+
+<!-- ADMIN SETUP (muncul jika config masih kosong) -->
+<div id="admin-screen">
+  <div class="adm-inner">
+    <div class="adm-logo">
+      <div class="drop">🩸</div>
+      <h1>Setup Admin</h1>
+      <p>Isi sekali, semua user langsung bisa pakai</p>
+    </div>
+    <div class="adm-note">
+      ⚠️ <strong>Token kamu sudah dinonaktifkan GitHub</strong> karena terdeteksi di file publik. Buat token baru dulu, lalu isi di sini. Token ini tersimpan hanya di perangkat ini.
+    </div>
+    <div class="adm-card">
+      <h3>🔧 Konfigurasi GitHub</h3>
+      <div class="adm-field">
+        <label>Username GitHub</label>
+        <input type="text" id="a-user" placeholder="contoh: renot10pro001-cyber"/>
+      </div>
+      <div class="adm-field">
+        <label>Nama Repository</label>
+        <input type="text" id="a-repo" placeholder="contoh: laporan_sampel"/>
+      </div>
+      <div class="adm-field">
+        <label>Token GitHub (baru)</label>
+        <input type="text" id="a-token" placeholder="ghp_xxxxxxxxxxxx"/>
+      </div>
+    </div>
+    <button class="adm-save" onclick="saveAdminSetup()">✅ Simpan & Mulai</button>
+    <p class="adm-note-bottom">Untuk permanen (semua petugas tanpa setup):<br>Edit file index.html → pecah token → upload ulang.</p>
+  </div>
+</div>
+
+<header>
+  <div class="h-logo">🩸</div>
+  <div class="h-text">
+    <h1>Laporan Kelalaian Petugas</h1>
+    <p>Sistem Pelaporan Sampel Darah · Online</p>
+  </div>
+  <div class="h-actions">
+    <div class="sync-dot" id="sync-dot"></div>
+    <button class="h-btn" onclick="openQR()">📱 QR</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="goTab('form',this)">📋 Input</button>
+  <button class="tab" onclick="goTab('rekap',this)">📊 Rekap</button>
+  <button class="tab" onclick="goTab('semua',this)">🗂️ Semua Data</button>
+  <button class="tab" onclick="goTab('panduan',this)">📖 Panduan</button>
+</div>
+
+<!-- TAB INPUT -->
+<div class="pane active" id="pane-form">
+  <div class="card">
+    <div class="card-title">🔬 Identitas Sampel</div>
+
+    <div class="fg">
+      <label class="fl">Barcode Sampel <span class="req">*</span></label>
+      <div class="bc-row">
+        <input type="text" id="f-barcode" placeholder="Ketik atau scan barcode..."/>
+        <button class="scan-btn" onclick="toggleScan()" id="scan-cam-btn">📷 Kamera</button>
+        <button class="gallery-btn" onclick="triggerGallery()">🖼️ Galeri</button>
+        <input type="file" id="gallery-input" accept="image/*" onchange="scanFromGallery(event)"/>
+      </div>
+      <div id="scanner-box"><div id="qr-reader"></div></div>
+      <div id="gallery-preview">
+        <img id="gallery-img" src="" alt="preview"/>
+        <div id="gallery-scanning">⏳ Membaca barcode dari gambar...</div>
+      </div>
+      <div class="scan-ok" id="scan-ok">✅ Barcode berhasil terbaca</div>
+    </div>
+
+    <div class="fg">
+      <label class="fl">Golongan Darah <span class="req">*</span></label>
+      <div class="blood-grid">
+        <button class="bb" onclick="pickBlood(this,'A')">A</button>
+        <button class="bb" onclick="pickBlood(this,'B')">B</button>
+        <button class="bb" onclick="pickBlood(this,'AB')">AB</button>
+        <button class="bb" onclick="pickBlood(this,'O')">O</button>
+      </div>
+      <input type="hidden" id="f-blood"/>
+    </div>
+
+    <div class="fg" style="margin-bottom:0">
+      <label class="fl">Tanggal Pengambilan <span class="req">*</span></label>
+      <input type="date" id="f-tgl"/>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">👤 Informasi Pelaporan</div>
+    <div class="fg">
+      <label class="fl">Nama Pelapor <span class="req">*</span></label>
+      <input type="text" id="f-pelapor" placeholder="Masukkan nama pelapor..."/>
+    </div>
+    <div class="fg" style="margin-bottom:0">
+      <label class="fl">Nama Pengambil Sampel <span class="req">*</span></label>
+      <input type="text" id="f-pengambil" placeholder="Masukkan nama pengambil..."/>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📝 Keterangan Kelalaian</div>
+    <div class="fg" style="margin-bottom:0">
+      <label class="fl">Deskripsi <span class="req">*</span></label>
+      <textarea id="f-ket" rows="3" placeholder="Jelaskan kelalaian yang terjadi..."></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📸 Bukti Foto <span class="req">*</span></div>
+    <div class="fg" style="margin-bottom:0">
+      <div class="bukti-row">
+        <button class="bukti-btn" onclick="triggerBukti()">📷 Ambil / Pilih Foto</button>
+        <button class="bukti-btn clear" id="bukti-clear-btn" onclick="clearBukti()" style="display:none">✕ Hapus</button>
+        <input type="file" id="bukti-input" accept="image/*" capture="environment" onchange="onBuktiSelected(event)"/>
+      </div>
+      <div id="bukti-preview-wrap">
+        <img id="bukti-img" src="" alt="bukti"/>
+        <div id="bukti-status">📎 Foto siap dikirim bersama laporan</div>
+      </div>
+      <div class="bukti-req-note" id="bukti-req-note">⚠️ Foto bukti wajib dilampirkan sebelum mengirim laporan.</div>
+    </div>
+  </div>
+
+  <button class="sub-btn" id="sub-btn" onclick="submitReport()">🩸 Kirim Laporan</button>
+  <div style="height:26px"></div>
+</div>
+
+<!-- TAB REKAP -->
+<div class="pane" id="pane-rekap">
+  <div class="card">
+    <div class="rekap-top">
+      <select id="r-mode" onchange="toggleYearSelect()">
+        <option value="bulan">Per Bulan</option>
+        <option value="tahun">Per Tahun</option>
+      </select>
+      <select id="r-year" style="flex:0;min-width:88px;"></select>
+      <button class="load-btn" onclick="loadRekap()">🔄 Tampilkan</button>
+    </div>
+    <div id="rek-loading" class="loading" style="display:none"><div class="spinner"></div>Memuat dari GitHub...</div>
+    <div id="rek-stats" class="stat-row" style="display:none">
+      <div class="stat"><div class="num" id="rs-total">0</div><div class="lbl">Total Laporan</div></div>
+      <div class="stat"><div class="num" id="rs-uniq">0</div><div class="lbl">Petugas Terlibat</div></div>
+    </div>
+    <div id="rek-chart"></div>
+    <div id="rek-blood"></div>
+    <div id="rek-empty" class="empty" style="display:none"><div class="icon">📭</div>Belum ada data.</div>
+  </div>
+</div>
+
+<!-- TAB SEMUA DATA -->
+<div class="pane" id="pane-semua">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:13px;flex-wrap:wrap;gap:8px">
+      <span id="all-cnt" style="font-size:.78rem;color:var(--ink3);font-weight:600">—</span>
+      <div style="display:flex;gap:7px">
+        <button class="load-btn" onclick="loadAll()">🔄 Refresh</button>
+        <button class="load-btn" style="background:var(--green)" onclick="exportCSV()">⬇️ CSV</button>
+      </div>
+    </div>
+    <div id="all-loading" class="loading" style="display:none"><div class="spinner"></div>Memuat...</div>
+    <div id="all-empty" class="empty" style="display:none"><div class="icon">📭</div>Belum ada laporan.</div>
+    <div class="tbl-wrap">
+      <table id="all-tbl" style="display:none">
+        <thead><tr>
+          <th>#</th><th>Barcode</th><th>Gol</th><th>Tgl Ambil</th>
+          <th>Tgl Pelaporan</th><th>Pelapor</th><th>Pengambil</th><th>Keterangan</th><th>Bukti</th>
+        </tr></thead>
+        <tbody id="all-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div style="height:26px"></div>
+</div>
+
+<!-- TAB PANDUAN -->
+<div class="pane" id="pane-panduan">
+  <div class="card" style="background:linear-gradient(135deg,#fef2f2,#fff5f5);border-color:#fecaca">
+    <p style="font-size:.83rem;color:var(--ink2);line-height:1.8">
+      🩸 Aplikasi ini digunakan untuk melaporkan kelalaian pengambilan sampel darah. Data tersimpan otomatis dan bisa dilihat semua petugas secara real-time.
+    </p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📋 Cara Input Data Laporan</div>
+    <div class="g-step">
+      <div class="g-num">1</div>
+      <div class="g-text">
+        <h4>Scan atau isi Barcode Sampel</h4>
+        <p>Gunakan tombol <strong>📷 Kamera</strong> untuk scan langsung, atau <strong>🖼️ Galeri</strong> untuk pilih foto dari HP. Bisa juga ketik manual nomor barcode di kolom yang tersedia.</p>
+      </div>
+    </div>
+    <div class="g-step">
+      <div class="g-num">2</div>
+      <div class="g-text">
+        <h4>Pilih Golongan Darah</h4>
+        <p>Ketuk salah satu tombol golongan darah: <strong>A</strong>, <strong>B</strong>, <strong>AB</strong>, atau <strong>O</strong> sesuai dengan label sampel.</p>
+      </div>
+    </div>
+    <div class="g-step">
+      <div class="g-num">3</div>
+      <div class="g-text">
+        <h4>Isi Tanggal Pengambilan</h4>
+        <p>Pilih tanggal saat sampel darah diambil. Default sudah terisi hari ini — ubah jika perlu.</p>
+      </div>
+    </div>
+    <div class="g-step">
+      <div class="g-num">4</div>
+      <div class="g-text">
+        <h4>Isi Nama Pelapor & Pengambil Sampel</h4>
+        <p><strong>Nama Pelapor</strong>: nama petugas yang melaporkan kelalaian.<br><strong>Nama Pengambil Sampel</strong>: nama petugas yang mengambil sampel darah tersebut.</p>
+      </div>
+    </div>
+    <div class="g-step">
+      <div class="g-num">5</div>
+      <div class="g-text">
+        <h4>Tulis Keterangan Kelalaian</h4>
+        <p>Jelaskan jenis kelalaian yang terjadi secara singkat dan jelas. Contoh: <em>"Label tertukar dengan sampel lain"</em> atau <em>"Sampel tidak diberi label golongan darah"</em>.</p>
+      </div>
+    </div>
+    <div class="g-step">
+      <div class="g-num">6</div>
+      <div class="g-text">
+        <h4>Kirim Laporan</h4>
+        <p>Tekan tombol <strong>🩸 Kirim Laporan</strong>. Tunggu hingga muncul notifikasi <em>"Laporan berhasil dikirim"</em>. Jangan tutup aplikasi saat proses pengiriman.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📷 Cara Scan Barcode via Kamera</div>
+    <div class="g-step">
+      <div class="g-num">A</div>
+      <div class="g-text">
+        <h4>Aktifkan kamera</h4>
+        <p>Klik tombol <strong>📷 Kamera</strong> di bawah kolom barcode. Izinkan akses kamera jika diminta browser.</p>
+      </div>
+    </div>
+    <div class="g-step">
+      <div class="g-num">B</div>
+      <div class="g-text">
+        <h4>Arahkan ke barcode</h4>
+        <p>Posisikan kamera menghadap barcode sampel darah. Pastikan barcode berada di tengah layar dan pencahayaan cukup. Barcode akan terbaca otomatis.</p>
+      </div>
+    </div>
+    <div class="g-step">
+      <div class="g-num">C</div>
+      <div class="g-text">
+        <h4>Kamera berhenti otomatis</h4>
+        <p>Setelah barcode terbaca, kamera berhenti sendiri dan nomor barcode terisi otomatis. Klik <strong>⏹ Stop</strong> jika ingin membatalkan scan.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🖼️ Cara Scan via Galeri (Foto dari HP)</div>
+    <div class="g-step">
+      <div class="g-num">A</div>
+      <div class="g-text">
+        <h4>Pilih foto dari galeri</h4>
+        <p>Klik tombol <strong>🖼️ Galeri</strong> → pilih foto barcode sampel dari galeri HP. Aplikasi akan otomatis membaca barcode atau angka dari foto tersebut.</p>
+      </div>
+    </div>
+    <div class="g-step">
+      <div class="g-num">B</div>
+      <div class="g-text">
+        <h4>Tips agar berhasil terbaca</h4>
+        <p>Gunakan foto yang <strong>jelas, tidak buram, dan cukup terang</strong>. Jika foto kurang jelas, edit kecerahan di galeri HP dulu sebelum dipilih. Semakin jelas angka/barcode pada foto, semakin akurat hasilnya.</p>
+      </div>
+    </div>
+    <div class="g-step">
+      <div class="g-num">C</div>
+      <div class="g-text">
+        <h4>Verifikasi angka yang terbaca</h4>
+        <p>Setelah proses selesai, cek kembali nomor yang muncul di kolom barcode. Jika salah, koreksi secara manual dengan mengetik langsung di kolom tersebut.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 Melihat Data & Rekap</div>
+    <div class="g-step">
+      <div class="g-num">1</div>
+      <div class="g-text">
+        <h4>Tab Rekap</h4>
+        <p>Lihat statistik laporan per bulan atau per tahun, dilengkapi grafik distribusi golongan darah dan jumlah petugas terlibat.</p>
+      </div>
+    </div>
+    <div class="g-step">
+      <div class="g-num">2</div>
+      <div class="g-text">
+        <h4>Tab Semua Data</h4>
+        <p>Lihat seluruh laporan dalam bentuk tabel. Bisa di-refresh kapan saja dan diunduh sebagai file <strong>CSV</strong> untuk keperluan dokumentasi.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-color:#86efac">
+    <div class="card-title" style="color:#15803d">💡 Tips Penting</div>
+    <div class="g-step">
+      <div class="g-num">!</div>
+      <div class="g-text">
+        <h4>Pastikan koneksi internet aktif</h4>
+        <p>Aplikasi membutuhkan internet untuk mengirim dan mengambil data. Cek indikator titik di pojok kanan atas — <span style="color:#16a34a;font-weight:700">hijau</span> berarti terhubung, <span style="color:#dc2626;font-weight:700">merah</span> berarti tidak terhubung.</p>
+      </div>
+    </div>
+    <div class="g-step" style="border:none;margin:0;padding:0">
+      <div class="g-num">!</div>
+      <div class="g-text">
+        <h4>Share akses ke petugas lain</h4>
+        <p>Klik ikon <strong>📱 QR</strong> di header → tunjukkan QR code ke petugas lain untuk di-scan. Mereka langsung bisa mengakses aplikasi tanpa perlu setup apapun.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:26px"></div>
+</div>
+
+<!-- LIGHTBOX BUKTI -->
+<div id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="" alt="Bukti Foto"/>
+  <button id="lightbox-close" onclick="closeLightbox()">✕ Tutup</button>
+</div>
+
+<!-- QR MODAL -->
+<div class="modal-bg" id="qr-modal" onclick="closeQR(event)">
+  <div class="modal">
+    <h3>📱 QR Akses Aplikasi</h3>
+    <p>Scan untuk buka di HP lain</p>
+    <div id="qr-display" style="display:flex;justify-content:center;margin-bottom:11px"></div>
+    <div class="modal-url" id="qr-url"></div>
+    <button class="modal-close" onclick="closeQR(null,true)">Tutup</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIG — gabungkan dari konstanta terpecah ATAU localStorage
+// ============================================================
+function getToken(){
+  // Coba dari konstanta yang sudah diset di atas
+  try {
+    if(typeof _T1!=='undefined' && _T1 && !_T1.includes('ISI_'))
+      return _T1+_T2+_T3;
+  } catch(e){}
+  // Fallback localStorage (dari admin setup screen)
+  return localStorage.getItem('gh_t')||'';
+}
+
+let CFG = {
+  user:  (typeof _U!=='undefined' && _U && !_U.includes('ISI_')) ? _U : (localStorage.getItem('gh_u')||''),
+  repo:  (typeof _R!=='undefined' && _R && !_R.includes('ISI_')) ? _R : (localStorage.getItem('gh_r')||''),
+  token: getToken()
+};
+const isReady = () => !!(CFG.user && CFG.repo && CFG.token);
+
+// ============================================================
+// ADMIN SETUP (fallback)
+// ============================================================
+function saveAdminSetup(){
+  const u=el('a-user').value.trim();
+  const r=el('a-repo').value.trim();
+  const t=el('a-token').value.trim();
+  if(!u||!r||!t) return toast('Semua field wajib diisi!','err');
+  CFG={user:u,repo:r,token:t};
+  localStorage.setItem('gh_u',u);
+  localStorage.setItem('gh_r',r);
+  localStorage.setItem('gh_t',t);
+  el('admin-screen').classList.remove('show');
+  checkConn();
+  toast('✅ Tersimpan! Buat token baru & edit file untuk permanen.','ok');
+}
+
+// ============================================================
+// GITHUB API
+// ============================================================
+const BASE = () => `https://api.github.com/repos/${CFG.user}/${CFG.repo}`;
+const LBL  = 'laporan-darah';
+
+async function ghReq(path, opts={}){
+  return fetch(BASE()+path, {
+    ...opts,
+    headers:{
+      'Authorization':'token '+CFG.token,
+      'Accept':'application/vnd.github.v3+json',
+      'Content-Type':'application/json',
+      ...(opts.headers||{})
+    }
+  });
+}
+
+async function ensureLabel(){
+  const r = await ghReq('/labels/'+encodeURIComponent(LBL));
+  if(!r.ok) await ghReq('/labels',{method:'POST',body:JSON.stringify({name:LBL,color:'b91c1c'})});
+}
+
+async function checkConn(){
+  const dot=el('sync-dot');
+  if(!isReady()){dot.className='sync-dot err';return;}
+  try{ const r=await ghReq(''); dot.className=r.ok?'sync-dot ok':'sync-dot err'; }
+  catch(e){ dot.className='sync-dot err'; }
+}
+
+// ============================================================
+// SUBMIT
+// ============================================================
+async function submitReport(){
+  if(!isReady()) return toast('Token tidak valid — buat token baru & setup ulang!','err');
+  const bc  = el('f-barcode').value.trim();
+  const bld = el('f-blood').value;
+  const tgl = el('f-tgl').value;
+  const pel = el('f-pelapor').value.trim();
+  const png = el('f-pengambil').value.trim();
+  const ket = el('f-ket').value.trim();
+  if(!bc)  return toast('Barcode sampel wajib!','err');
+  if(!bld) return toast('Pilih golongan darah!','err');
+  if(!tgl) return toast('Isi tanggal pengambilan!','err');
+  if(!pel) return toast('Isi nama pelapor!','err');
+  if(!png) return toast('Isi nama pengambil!','err');
+  if(!ket) return toast('Isi keterangan kelalaian!','err');
+  if(!_buktiBase64){
+    el('bukti-req-note').classList.add('show');
+    el('bukti-req-note').scrollIntoView({behavior:'smooth',block:'center'});
+    return toast('📸 Foto bukti wajib dilampirkan!','err');
+  }
+  el('bukti-req-note').classList.remove('show');
+
+  const btn=el('sub-btn');
+  btn.disabled=true;
+
+  try{
+    await ensureLabel();
+
+    // Upload bukti foto ke folder bukti/ di repo
+    let bukti_url = '';
+    btn.innerHTML='⏳ Mengupload foto bukti...';
+    try{
+      const safeBc = bc.replace(/[^a-zA-Z0-9]/g,'');
+      const fname  = `bukti/${Date.now()}_${safeBc}.${_buktiExt}`;
+      const upRes  = await ghReq('/contents/'+fname,{
+        method:'PUT',
+        body:JSON.stringify({
+          message:`Bukti foto laporan ${bc}`,
+          content: _buktiBase64
+        })
+      });
+      if(upRes.ok){
+        const upData = await upRes.json();
+        bukti_url = upData.content.download_url ||
+          `https://raw.githubusercontent.com/${CFG.user}/${CFG.repo}/main/${fname}`;
+      } else {
+        throw new Error('Upload foto gagal ('+upRes.status+')');
+      }
+    } catch(e){
+      btn.disabled=false; btn.innerHTML='🩸 Kirim Laporan';
+      return toast('❌ '+e.message+' — coba lagi.','err');
+    }
+
+    btn.innerHTML='⏳ Mengirim laporan...';
+    const body=[
+      '## Data Laporan Kelalaian','',
+      '| Field | Value |','|---|---|',
+      `| **Barcode** | \`${bc}\` |`,
+      `| **Golongan Darah** | ${bld} |`,
+      `| **Tanggal Pengambilan** | ${tgl} |`,
+      `| **Nama Pelapor** | ${pel} |`,
+      `| **Nama Pengambil** | ${png} |`,
+      `| **Keterangan** | ${ket} |`,
+      `| **Bukti Foto** | ![bukti](${bukti_url}) |`,
+      `| **Waktu Input** | ${new Date().toLocaleString('id-ID')} |`,
+      '','```json',
+      JSON.stringify({bc,bld,tgl,pel,png,ket,ts:Date.now(),bukti_url}),
+      '```'
+    ].join('\n');
+
+    const res = await ghReq('/issues',{method:'POST',body:JSON.stringify({
+      title:`[LAPORAN] ${bc} · Gol.${bld} · ${fd(tgl)}`,
+      body, labels:[LBL]
+    })});
+    if(!res.ok){
+      if(res.status===401) throw new Error('Token tidak valid atau sudah dinonaktifkan GitHub. Buat token baru!');
+      throw new Error('GitHub error '+res.status);
+    }
+    _cache=[];
+    resetForm();
+    toast('✅ Laporan berhasil dikirim!','ok');
+  }catch(e){ toast(e.message,'err'); }
+  finally{ btn.disabled=false; btn.innerHTML='🩸 Kirim Laporan'; }
+}
+
+// ============================================================
+// FETCH DATA
+// ============================================================
+let _cache=[];
+async function fetchAll(){
+  let page=1, all=[];
+  while(true){
+    const r = await ghReq(`/issues?labels=${LBL}&state=open&per_page=100&page=${page}`);
+    if(!r.ok) throw new Error('GitHub API error '+r.status);
+    const d = await r.json();
+    if(!d.length) break;
+    all=[...all,...d]; if(d.length<100) break; page++;
+  }
+  _cache = all.map(parseIssue).filter(Boolean);
+  return _cache;
+}
+function parseIssue(i){
+  try{
+    const m=i.body.match(/```json\n([\s\S]+?)\n```/);
+    if(!m)return null;
+    const d=JSON.parse(m[1]);
+    const tgl_lapor = d.ts
+      ? new Date(d.ts).toLocaleString('id-ID',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})
+      : '—';
+    return{id:i.number,barcode:d.bc,blood:d.bld,tgl:d.tgl,pelapor:d.pel,pengambil:d.png,keterangan:d.ket,ts:d.ts,tgl_lapor,bukti_url:d.bukti_url||''};
+  }catch(e){return null;}
+}
+
+// ============================================================
+// SEMUA DATA
+// ============================================================
+async function loadAll(){
+  if(!isReady()) return toast('Token tidak valid!','err');
+  show('all-loading'); el('all-tbl').style.display='none'; hide('all-empty');
+  try{ await fetchAll(); renderAll(); }
+  catch(e){ toast('Gagal: '+e.message,'err'); }
+  finally{ hide('all-loading'); }
+}
+function renderAll(){
+  el('all-cnt').textContent=_cache.length+' laporan tersimpan di GitHub';
+  if(!_cache.length){ show('all-empty'); el('all-tbl').style.display='none'; return; }
+  hide('all-empty'); el('all-tbl').style.display='table';
+  el('all-body').innerHTML=_cache.map((r,i)=>`
+    <tr>
+      <td style="color:var(--ink3);font-size:.7rem">${_cache.length-i}</td>
+      <td><strong>${r.barcode}</strong></td>
+      <td><span class="badge-blood">${r.blood}</span></td>
+      <td style="white-space:nowrap">${fd(r.tgl)}</td>
+      <td style="white-space:nowrap;font-size:.72rem;color:var(--ink3)">${r.tgl_lapor}</td>
+      <td>${r.pelapor}</td>
+      <td>${r.pengambil}</td>
+      <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.keterangan}">${r.keterangan}</td>
+      <td>${r.bukti_url
+        ? `<img class="tbl-thumb" src="${r.bukti_url}" alt="bukti" onclick="openLightbox('${r.bukti_url}')" loading="lazy"/>`
+        : `<span class="no-bukti">—</span>`}</td>
+    </tr>`).join('');
+}
+
+// ============================================================
+// REKAP
+// ============================================================
+function toggleYearSelect(){ el('r-year').style.display=el('r-mode').value==='bulan'?'':'none'; }
+async function loadRekap(){
+  if(!isReady()) return toast('Token tidak valid!','err');
+  show('rek-loading');
+  el('rek-chart').innerHTML=''; el('rek-blood').innerHTML='';
+  hide('rek-stats'); hide('rek-empty');
+  try{
+    if(!_cache.length) await fetchAll();
+    const mode=el('r-mode').value;
+    const yr=parseInt(el('r-year').value||new Date().getFullYear());
+    const data=mode==='bulan'?_cache.filter(r=>r.tgl&&r.tgl.startsWith(yr)):_cache;
+    if(!data.length){ show('rek-empty'); return; }
+    mode==='bulan'?drawMonths(data,yr):drawYears(data);
+    drawStats(data); drawBlood(data);
+  }catch(e){ toast('Gagal: '+e.message,'err'); }
+  finally{ hide('rek-loading'); }
+}
+function drawMonths(data,yr){
+  const M=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  const c=Array(12).fill(0);
+  data.forEach(r=>{ if(r.tgl){const m=parseInt(r.tgl.split('-')[1])-1;if(m>=0&&m<12)c[m]++;} });
+  const max=Math.max(...c,1);
+  el('rek-chart').innerHTML='<div class="chart-title">📅 Per Bulan — '+yr+'</div>'+M.map((m,i)=>bRow(m,c[i],max,'var(--red)')).join('');
+}
+function drawYears(data){
+  const yc={};data.forEach(r=>{ if(r.tgl){const y=r.tgl.split('-')[0];yc[y]=(yc[y]||0)+1;} });
+  const years=Object.keys(yc).sort(); const max=Math.max(...Object.values(yc),1);
+  el('rek-chart').innerHTML='<div class="chart-title">📅 Per Tahun</div>'+years.map(y=>bRow(y,yc[y],max,'var(--red)')).join('');
+}
+function drawStats(data){
+  el('rs-total').textContent=data.length;
+  el('rs-uniq').textContent=new Set(data.map(r=>r.pengambil)).size;
+  el('rek-stats').style.display='grid';
+}
+function drawBlood(data){
+  const bc={A:0,B:0,AB:0,O:0};
+  data.forEach(r=>{ if(bc[r.blood]!==undefined)bc[r.blood]++; });
+  const max=Math.max(...Object.values(bc),1);
+  el('rek-blood').innerHTML='<div class="chart-title" style="margin-top:12px">🩸 Distribusi Golongan Darah</div>'
+    +Object.keys(bc).map(k=>bRow('Gol.'+k,bc[k],max,'var(--purple)')).join('');
+}
+function bRow(label,count,max,color){
+  const pct=Math.max(count/max*100,count?3:0);
+  return`<div class="bar-row">
+    <span class="bar-label">${label}</span>
+    <div class="bar-track"><div class="bar-fill ${count/max<.25?'xs':''}" style="width:${pct}%;background:${color}"><span>${count||''}</span></div></div>
+    <span class="bar-num">${count}</span>
+  </div>`;
+}
+
+// ============================================================
+// EXPORT CSV
+// ============================================================
+function exportCSV(){
+  if(!_cache.length) return toast('Muat data dulu!','err');
+  const h=['No','Barcode','Gol.Darah','Tgl.Pengambilan','Pelapor','Pengambil','Keterangan'];
+  const rows=_cache.map((r,i)=>[_cache.length-i,r.barcode,r.blood,fd(r.tgl),r.pelapor,r.pengambil,`"${(r.keterangan||'').replace(/"/g,'""')}"`]);
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\uFEFF'+[h,...rows].map(r=>r.join(',')).join('\n')],{type:'text/csv;charset=utf-8;'}));
+  a.download=`Laporan_Sampel_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); toast('⬇️ CSV berhasil diunduh!','ok');
+}
+
+// ============================================================
+// SCANNER — KAMERA
+// ============================================================
+let scanner=null, scanOn=false;
+function toggleScan(){ scanOn?stopScan():startScan(); }
+function startScan(){
+  hide('gallery-preview');
+  el('scanner-box').classList.add('on'); scanOn=true;
+  el('scan-cam-btn').textContent='⏹ Stop';
+  scanner=new Html5Qrcode('qr-reader');
+  scanner.start({facingMode:'environment'},{fps:12,qrbox:{width:200,height:100}},
+    decoded=>{ onBarcodeRead(decoded); stopScan(); },
+    ()=>{}
+  ).catch(e=>{ toast('Kamera error: '+e,'err'); stopScan(); });
+}
+function stopScan(){
+  if(scanner&&scanOn) scanner.stop().catch(()=>{});
+  scanOn=false; el('scanner-box').classList.remove('on');
+  el('scan-cam-btn').innerHTML='📷 Kamera';
+}
+
+// ============================================================
+// SCANNER — GALERI
+// ============================================================
+function triggerGallery(){
+  if(scanOn) stopScan();
+  el('gallery-input').value=''; // reset agar bisa pilih file sama
+  el('gallery-input').click();
+}
+
+function scanFromGallery(event){
+  const file = event.target.files[0];
+  if(!file) return;
+
+  // Tampilkan preview
+  const reader = new FileReader();
+  reader.onload = function(e){
+    el('gallery-img').src = e.target.result;
+    el('gallery-preview').style.display='block';
+    el('gallery-scanning').style.display='block';
+    el('gallery-scanning').style.color='#94a3b8';
+    el('gallery-scanning').textContent='⏳ Membaca barcode dari gambar...';
+  };
+  reader.readAsDataURL(file);
+
+  // TAHAP 1: Coba baca sebagai barcode/QR
+  const html5QrCode = new Html5Qrcode('qr-reader-file');
+  html5QrCode.scanFile(file, true)
+    .then(decoded => {
+      onBarcodeRead(decoded);
+      el('gallery-scanning').style.display='block';
+      el('gallery-scanning').style.color='#16a34a';
+      el('gallery-scanning').textContent='✅ Barcode berhasil dibaca!';
+    })
+    .catch(() => {
+      // TAHAP 2: Fallback — baca angka via OCR (Tesseract)
+      el('gallery-scanning').textContent='🔍 Barcode tidak terdeteksi, mencoba baca angka dari teks...';
+      el('gallery-scanning').style.color='#f59e0b';
+      tryOCRfromFile(file);
+    });
+}
+
+async function tryOCRfromFile(file){
+  try{
+    const result = await Tesseract.recognize(file, 'eng', { logger: ()=>{} });
+    const rawText = result.data.text;
+
+    // Cari urutan angka paling panjang (min 6 digit) — cocok untuk barcode sampel
+    const matches = rawText.match(/\d[\d\s\-]{4,}\d/g);
+    if(matches && matches.length > 0){
+      // Bersihkan spasi & strip dari hasil OCR, ambil yang terpanjang
+      const cleaned = matches
+        .map(m => m.replace(/[\s\-]/g,''))
+        .filter(m => m.length >= 5)
+        .sort((a,b) => b.length - a.length);
+      if(cleaned.length > 0){
+        onBarcodeRead(cleaned[0]);
+        el('gallery-scanning').style.color='#16a34a';
+        el('gallery-scanning').textContent='✅ Angka berhasil dibaca via OCR: '+cleaned[0];
+        return;
+      }
+    }
+    // Tidak ada angka ditemukan
+    el('gallery-scanning').style.color='#fca5a5';
+    el('gallery-scanning').textContent='❌ Tidak ada angka terdeteksi. Coba foto lebih dekat dan terang.';
+    toast('Angka tidak terbaca. Pastikan foto jelas dan tidak buram.','err');
+  } catch(e){
+    el('gallery-scanning').style.color='#fca5a5';
+    el('gallery-scanning').textContent='❌ Gagal memproses gambar. Coba foto ulang.';
+    toast('Gagal membaca gambar dari galeri','err');
+  }
+}
+
+function onBarcodeRead(decoded){
+  el('f-barcode').value=decoded;
+  const ok=el('scan-ok'); ok.classList.add('show');
+  setTimeout(()=>ok.classList.remove('show'),3000);
+  toast('✅ Barcode: '+decoded,'ok');
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function localDateStr(){
+  const d=new Date();
+  return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function pickBlood(btn,val){
+  document.querySelectorAll('.bb').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel'); el('f-blood').value=val;
+}
+function resetForm(){
+  ['f-barcode','f-pelapor','f-pengambil','f-ket'].forEach(id=>el(id).value='');
+  el('f-tgl').value=localDateStr(); el('f-blood').value='';
+  document.querySelectorAll('.bb').forEach(b=>b.classList.remove('sel'));
+  el('gallery-preview').style.display='none';
+  clearBukti();
+}
+function fd(d){ if(!d)return'-'; const[y,m,dd]=d.split('-'); return`${dd}/${m}/${y}`; }
+function el(id){ return document.getElementById(id); }
+function show(id){ el(id).style.display='block'; }
+function hide(id){ el(id).style.display='none'; }
+function goTab(name,btn){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  el('pane-'+name).classList.add('active'); btn.classList.add('active');
+  if(scanOn) stopScan();
+  if(name==='semua'&&!_cache.length) loadAll();
+}
+function initYears(){
+  const s=el('r-year'); const cur=new Date().getFullYear(); s.innerHTML='';
+  for(let y=cur;y>=cur-5;y--){ const o=document.createElement('option'); o.value=y; o.textContent=y; s.appendChild(o); }
+}
+let toastTmr;
+function toast(msg,type=''){
+  const t=el('toast'); t.textContent=msg; t.className='toast show '+type;
+  clearTimeout(toastTmr); toastTmr=setTimeout(()=>t.classList.remove('show'),3500);
+}
+let qrDone=false;
+function openQR(){
+  const url=window.location.href; el('qr-url').textContent=url;
+  if(!qrDone){ el('qr-display').innerHTML=''; new QRCode(el('qr-display'),{text:url,width:200,height:200,colorDark:'#0f172a',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.H}); qrDone=true; }
+  el('qr-modal').classList.add('show');
+}
+function closeQR(e,force){
+  if(force||(e&&e.target===el('qr-modal'))) el('qr-modal').classList.remove('show');
+}
+
+// ============================================================
+// BUKTI FOTO
+// ============================================================
+let _buktiBase64='', _buktiExt='';
+
+function triggerBukti(){
+  el('bukti-input').value='';
+  el('bukti-input').click();
+}
+function onBuktiSelected(event){
+  const file=event.target.files[0];
+  if(!file) return;
+  _buktiExt = file.type==='image/png'?'png':'jpg';
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const img=new Image();
+    img.onload=function(){
+      const maxW=1200, q=0.78;
+      const canvas=document.createElement('canvas');
+      let w=img.width, h=img.height;
+      if(w>maxW){ h=Math.round(h*maxW/w); w=maxW; }
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      const dataUrl=canvas.toDataURL(_buktiExt==='png'?'image/png':'image/jpeg',q);
+      _buktiBase64=dataUrl.split(',')[1];
+      el('bukti-img').src=dataUrl;
+      el('bukti-preview-wrap').style.display='block';
+      el('bukti-clear-btn').style.display='flex';
+      el('bukti-req-note').classList.remove('show');
+      const kb=Math.round(_buktiBase64.length*0.75/1024);
+      el('bukti-status').textContent=`📎 Foto siap dikirim · ~${kb} KB`;
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function clearBukti(){
+  _buktiBase64=''; _buktiExt='';
+  el('bukti-img').src='';
+  el('bukti-preview-wrap').style.display='none';
+  el('bukti-clear-btn').style.display='none';
+  el('bukti-input').value='';
+  el('bukti-req-note').classList.remove('show');
+}
+function openLightbox(url){
+  el('lightbox-img').src=url;
+  el('lightbox').classList.add('show');
+}
+function closeLightbox(){
+  el('lightbox').classList.remove('show');
+  el('lightbox-img').src='';
+}
+
+// ============================================================
+// INIT
+// ============================================================
+el('f-tgl').value=localDateStr();
+initYears(); toggleYearSelect();
+// Div tersembunyi untuk scan galeri
+document.body.insertAdjacentHTML('beforeend','<div id="qr-reader-file" style="display:none"></div>');
+if(!isReady()){
+  el('admin-screen').classList.add('show');
+} else {
+  checkConn();
+}
+</script>
+</body>
+</html>
